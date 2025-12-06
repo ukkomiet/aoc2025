@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -17,15 +18,24 @@ int main() {
 
     int x = lines.size();
     int y = lines[0].size();
+
+    cout << x << " " << y << "\n";
     // grid is vector representing x*y matrix of input.txt (x-rows, y-columns)
-    vector<char> grid(x*y);
+    // 0 = '.'
+    // 1 = '@'
+    vector<int> grid (x*y);
+
 
     // initializing the matrix
     #pragma omp parallel for
     for (int i = 0; i<x; i++) {
         string s = lines[i];
         for (int j = 0; j<y; j++) {
-            grid[y*i+j] = s[j];
+            if (s[j] == '.') {
+                grid[y*i+j] = 0;
+            } else  {
+                grid[y*i+j] = 1;
+            }
         }
     }
 
@@ -63,28 +73,42 @@ int main() {
 
     // Proceed to check all elements in the matrix, namely iterate through the neighbors of all elements
     int sum = 0;
-    #pragma omp parallel for nowait
-    for (int pos = 0; pos < x*y; pos++) {
-        if (grid[pos] == '.') {
-            // skip empty spots
-        } else { // else its '@' paper roll
-            if (CORNERS.contains(pos)) {sum+=1;} // CORNERS are accessible always since only 3 neighbors
-            else if (TOPS.contains(pos) || BOTTOMS.contains(pos) || LEFTS.contains(pos) || RIGHTS.contains(pos)) {
-                int c = 0;
-                for (int& ij : neighbors[pos]) {
-                    if (grid[ij] == '@') {c++;}
+    bool atleast_one_was_removed = true;
+    while (atleast_one_was_removed) {
+
+        vector<int> to_be_removed;
+        atleast_one_was_removed = false;
+
+        #pragma omp parallel for
+        for (int pos = 0; pos < x*y; pos++) {
+            if (grid[pos] == 0) {
+                // skip empty spots
+            } else { // else its '@' paper roll
+                if (CORNERS.contains(pos)) {sum+=1; atleast_one_was_removed = true; to_be_removed.push_back(pos);} // CORNERS are accessible always since only 3 neighbors
+                else if (TOPS.contains(pos) || BOTTOMS.contains(pos) || LEFTS.contains(pos) || RIGHTS.contains(pos)) {
+                    int c = 0;
+                    for (int& ij : neighbors[pos]) {
+                        if (grid[ij] == 1) {c++;}
+                    }
+                    if (c < 4) {sum++; atleast_one_was_removed = true; to_be_removed.push_back(pos);}
+                } else { // else check all 8 adjacent neighbors
+                    vector<int> adjs = {pos-1, pos+1, pos-y-1, pos-y, pos-y+1, pos+y-1, pos+y, pos+y+1};
+                    int c = 0;
+                    for (int& ij : adjs) {
+                        if (grid[ij] == 1) {c++;}
+                    }
+                    if (c < 4) {sum++; atleast_one_was_removed = true; to_be_removed.push_back(pos);}
                 }
-                if (c < 4) {sum++;}
-            } else { // else check all 8 adjacent neighbors
-                vector<int> adjs = {pos-1, pos+1, pos-y-1, pos-y, pos-y+1, pos+y-1, pos+y, pos+y+1};
-                int c = 0;
-                for (int& ij : adjs) {
-                    if (grid[ij] == '@') {c++;}
-                }
-                if (c < 4) {sum++;}
             }
         }
+
+        #pragma omp parallel for 
+        for (int& pos : to_be_removed) {
+            grid[pos] = 0;
+        }
     }
+
+    
 
 
     cout << sum << "\n";
