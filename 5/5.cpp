@@ -9,47 +9,33 @@ using namespace std;
 int main() {
 
     vector<string> id_ranges;
-    vector<string> ids;
+    vector<long long> ids;
     ifstream idfile("input.txt");
-    bool id_b = true;
+
     for (string buff; (getline(idfile, buff));) {
         if (buff == "") {
-            id_b = false;
-        } else if (id_b) {
-            id_ranges.push_back(buff);
+            break;
         } else {
-            ids.push_back(buff);
+            id_ranges.push_back(buff);
         }
     }
-    cout << id_ranges[0] << " " << ids[0] << "\n";
 
     int fresh = 0;
-    int spoiled = 0;
 
-    set<long long> fresh_ids;
-
-    // brutus for inserting fresh ids into a set
+    // check the fresh ids
     #pragma omp parallel for
-    for (int i = 0; i<id_ranges.size(); i++) {
-        string t = id_ranges[i];
-        long long eka = stoll(t.substr(0,t.find('-')));
-        long long toka = stoll(t.substr(t.find('-')+1));
-        for (eka; eka <= toka; eka++) {
-            fresh_ids.insert(eka);
+    for (string buff; (getline(idfile, buff));) {
+        long long fresh_id = stoll(buff);
+        for (string range : id_ranges) {
+            long long eka = stoll(range.substr(0,range.find('-')));
+            long long toka = stoll(range.substr(range.find('-')+1));
+            if (fresh_id <= toka && fresh_id >= eka) {
+                fresh++;
+                break;
+            }
         }
+
     }
-
-    // checking ids from fresh id set
-    #pragma omp parallel for 
-    for (int i = 0; i<ids.size(); i++) {
-        if (fresh_ids.contains(ids[i])) {
-            fresh++;
-        } else {
-            spoiled++;
-        }
-    }
-
-
 
 
     cout << fresh << "\n";
