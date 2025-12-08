@@ -7,6 +7,19 @@
 
 using namespace std;
 
+int find_max_first_index(string str) {
+    int max = 0;
+    int index = 0;
+    for (int i = 0; i < str.size(); i++) {
+        int value = str[i] - '0';
+        if (value > max) {
+            max = value;
+            index = i;
+        }
+    }
+    return index;
+}
+
 int main() {
 
     vector<string> banks;
@@ -15,39 +28,39 @@ int main() {
         banks.push_back(buff);
     }
 
-    long sum = 0;
-
+    long long sum = 0;
 
     #pragma omp parallel for
     for (int i = 0; i < banks.size(); i++) {
 
-        int len = banks[i].size();
-        //cout << i << "\n";
         string s = banks[i];
-        int first = 0;
-        int second = 0;        
-        // check values starting from 9
-        int first_p = 0;
-        for (int c = 9; c > 0; c--) {
-            if (second != 0 && first != 0) {break;}
-            
-            size_t t = s.find_first_of(to_string(c),first_p+1);
-            while (t != string::npos) {
+        long long temp = 0;
 
+        // checking for the first value, can ignore the last index (in second part can ignore last 11 indices)
+        int last_index = find_max_first_index(s.substr(0,s.size()-11));
+        vector<char> values;
+        values.push_back(s[last_index]);
 
-                if (t+1!=len && first == 0) {
-                    first = c;
-                    first_p = t;
-                } else {
-                    second = c;
-                }
-                t = s.find_first_of(to_string(c),t+1);
-            }
-            
+        cout << last_index << "\n";
+
+        // loop the values
+        for (int digit = 0; digit < 11; digit++) {
+            int end_buffer = 10-digit;
+            int current_index = find_max_first_index(s.substr(last_index+1, s.size()-last_index-1-end_buffer)) + last_index+1;
+            last_index = current_index;
+            values.push_back(s[current_index]);
         }
-        cout << s << " - " << 10*first + second << "\n";
-        sum += second;
-        sum += 10*first;
+
+        string t = "";
+        for (char& c : values) {
+            t.push_back(c);
+        }
+
+        temp = stoll(t);
+        
+
+        //cout << s << " - " << temp << "\n";
+        sum += temp;
     }
 
     cout << sum << "\n";
